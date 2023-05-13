@@ -16,7 +16,7 @@ class Bitpack(commands.Cog):
         self.file_list = glob.glob("./samples/*.*")
         
     def check_file(self, fname):
-        if fname.endswith((".wav", ".flac", ".ogg")):
+        if fname.lower().endswith((".wav", ".flac", ".ogg")):
             return True
         else:
             return False
