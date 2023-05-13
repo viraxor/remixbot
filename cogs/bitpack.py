@@ -14,16 +14,21 @@ class Bitpack(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.file_list = glob.glob("./samples/*.*")
+        self.SAMPLE = 0
+        self.ZIP = 1
+        self.NOT_FILE = 2
         
     def check_file(self, fname):
         if fname.lower().endswith((".wav", ".flac", ".ogg")):
-            return True
+            return self.SAMPLE
+        elif fname.lower().endswith(".zip"):
+            return self.ZIP
         else:
-            return False
+            return self.NOT_FILE
             
     def copy_file(self, fname):
         i = 0
-        copy_fname = fname
+        copy_fname = fname.split("/")[-1]
         copy = True
         while os.path.exists(f"./samples/{copy_fname}"):
             if os.stat(f"./samples/{copy_fname}").st_size == os.stat(f"./temp.{copy_fname.split('.')[-1]}").st_size: # if file sizes are same
@@ -36,16 +41,34 @@ class Bitpack(commands.Cog):
         if copy:    
             shutil.copy(f"./temp.{copy_fname.split('.')[-1]}", f"./samples/{copy_fname}")
             self.file_list.append(f"./samples/{copy_fname}")
+            
+    def copy_zip(self):
+        if os.path.exists("./zip"):
+            shutil.rmtree("./zip", ignore_errors=True)
+        shutil.unpack_archive("./temp.zip", "./zip", "zip")
+        samples = glob.glob("./zip/**/*.wav", recursive=True)
+        samples.extend(glob.glob("./zip/**/*.ogg", recursive=True))
+        samples.extend(glob.glob("./zip/**/*.flac", recursive=True))
+        for fname in samples:
+            shutil.copy(fname, f"./temp.{fname.split('/')[-1].split('.')[-1]}")
+            self.copy_file(fname)
         
     @app_commands.command(name="sample")
     async def sample(self, interaction: discord.Interaction, smpfile: discord.Attachment):
         """Upload samples to the bot through this command."""
         
-        if self.check_file(smpfile.filename):
+        if self.check_file(smpfile.filename) == self.SAMPLE:
             await smpfile.save(f"./temp.{smpfile.filename.split('.')[-1]}")
             fn = partial(self.copy_file, smpfile.filename)
             await self.bot.loop.run_in_executor(None, fn)
             await interaction.response.send_message("The file has been saved.")
+        elif self.check_file(smpfile.filename) == self.ZIP:
+            await interaction.response.defer()
+            await smpfile.save(f"./temp.zip")
+            fn = partial(self.copy_zip)
+            await self.bot.loop.run_in_executor(None, fn)
+            msg = await interaction.original_response()
+            await msg.edit(content="The files have been saved.")
         else:
             await interaction.response.send_message("You can send only wav, ogg or flac files!", ephemeral=True)
             
