@@ -45,13 +45,13 @@ class Bitpack(commands.Cog):
             await smpfile.save(f"./temp.{smpfile.filename.split('.')[-1]}")
             fn = partial(self.copy_file, smpfile.filename)
             await self.bot.loop.run_in_executor(None, fn)
-            await interaction.response.send_message("The file has been saved.", ephemeral=True)
+            await interaction.response.send_message("The file has been saved.")
         else:
             await interaction.response.send_message("You can send only wav, ogg or flac files!", ephemeral=True)
             
     def make_bitpack(self):
         if os.path.exists("./bitpack"):
-            os.rmdir("./bitpack") # deletes the bitpack made before
+            shutil.rmtree("./bitpack", ignore_errors=True) # deletes the bitpack made before
         os.mkdir("./bitpack")
         samples = random.sample(self.file_list, random.randint(20, 35)) # hehe random.sample
         for sample in samples:
@@ -63,6 +63,8 @@ class Bitpack(commands.Cog):
         """Make bitpacks for your battles, easy and fast."""
         
         fn = partial(self.make_bitpack)
+        await interaction.response.defer()
         await self.bot.loop.run_in_executor(None, fn)
         file = discord.File("./pack.zip")
-        await interaction.response.send_message(file=file, ephemeral=True)
+        msg = await interaction.original_response()
+        await msg.add_files(file)
