@@ -31,8 +31,8 @@ class Bitpack(commands.Cog):
         copy_fname = fname.split("/")[-1]
         copy = True
         while os.path.exists(f"./samples/{copy_fname}"):
-            if os.stat(f"./samples/{copy_fname}").st_size == os.stat(f"./temp.{copy_fname.split('.')[-1]}").st_size: # if file sizes are same
-                copy = False # the file is a duplicate, therefore
+            if (os.stat(f"./samples/{copy_fname}").st_size == os.stat(f"./temp.{copy_fname.split('.')[-1]}").st_size) or os.stat(f"./samples/{copy_fname}").st_size > 1000000: # if file is larger than 1mb or is a duplicate
+                copy = False # no copying of the file
                 break
             else:
                 i += 1
@@ -58,10 +58,13 @@ class Bitpack(commands.Cog):
         """Upload samples to the bot through this command."""
         
         if self.check_file(smpfile.filename) == self.SAMPLE:
-            await smpfile.save(f"./temp.{smpfile.filename.split('.')[-1]}")
-            fn = partial(self.copy_file, smpfile.filename)
-            await self.bot.loop.run_in_executor(None, fn)
-            await interaction.response.send_message("The file has been saved.")
+            if smpfile.size < 1000000: # 1mb?
+                await smpfile.save(f"./temp.{smpfile.filename.split('.')[-1]}")
+                fn = partial(self.copy_file, smpfile.filename)
+                await self.bot.loop.run_in_executor(None, fn)
+                await interaction.response.send_message("The file has been saved.")
+            else:
+                await interaction.response.send_message("The file is too large. Try downsampling it.", ephemeral=True)
         elif self.check_file(smpfile.filename) == self.ZIP:
             await interaction.response.defer()
             await smpfile.save(f"./temp.zip")
