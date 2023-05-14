@@ -36,7 +36,8 @@ class Bitpack(commands.Cog):
                 break
             else:
                 i += 1
-                copy_fname = fname[2:] + f"({i})"
+                copy_fname = fname[:-len(fname.split(".")[-1]) - 1] + f"({i})." + fname.split(".")[-1]
+                print(copy_fname)
         
         if copy:    
             shutil.copy(f"./temp.{copy_fname.split('.')[-1]}", f"./samples/{copy_fname}")
