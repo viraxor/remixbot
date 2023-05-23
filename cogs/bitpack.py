@@ -36,7 +36,7 @@ class Bitpack(commands.Cog):
                 break
             else: # if it isn't a duplicate
                 i += 1
-                copy_fname = fname[:-len(fname.split(".")[-1]) - 1] + f"({i})." + fname.split(".")[-1] # concatenates (1), (2) etc. to the file if the file with that name already exists
+                copy_fname = fname[:-len(fname.split(".")[-1]) - 1].split("/")[-1] + f"({i})." + fname.split(".")[-1] # concatenates (1), (2) etc. to the file if the file with that name already exists
                 print(copy_fname)
         
         if copy:    
@@ -48,8 +48,11 @@ class Bitpack(commands.Cog):
             shutil.rmtree("./zip", ignore_errors=True) # delete if zip was extracted before
         shutil.unpack_archive("./temp.zip", "./zip", "zip")
         samples = glob.glob("./zip/**/*.wav", recursive=True)
+        samples.extend(glob.glob("./zip/**/*.WAV", recursive=True))
         samples.extend(glob.glob("./zip/**/*.ogg", recursive=True))
+        samples.extend(glob.glob("./zip/**/*.OGG", recursive=True))
         samples.extend(glob.glob("./zip/**/*.flac", recursive=True))
+        samples.extend(glob.glob("./zip/**/*.FLAC", recursive=True))
         for fname in samples:
             shutil.copy(fname, f"./temp.{fname.split('/')[-1].split('.')[-1]}") # copy sample as temp.wav (to work with self.copy_file)
             self.copy_file(fname)
@@ -64,8 +67,8 @@ class Bitpack(commands.Cog):
                 await smpfile.save(f"./temp.{smpfile.filename.split('.')[-1]}")
                 fn = partial(self.copy_file, smpfile.filename)
                 await self.bot.loop.run_in_executor(None, fn)
-                msg = await interaction.original_response
-                await msg.edit(content="The file has been saved.")
+                msg = await interaction.original_response()
+                await msg.edit(content=f"The file {smpfile.filename} has been saved.")
             else:
                 await interaction.response.send_message("The file is too large. Try downsampling it.", ephemeral=True)
         elif self.check_file(smpfile.filename) == self.ZIP:
@@ -74,7 +77,7 @@ class Bitpack(commands.Cog):
             fn = partial(self.copy_zip)
             await self.bot.loop.run_in_executor(None, fn)
             msg = await interaction.original_response()
-            await msg.edit(content="The files have been saved.")
+            await msg.edit(content=f"The files from {smpfile.filename} have been saved.")
         else:
             await interaction.response.send_message("You can send only wav, ogg or flac files!", ephemeral=True)
             
